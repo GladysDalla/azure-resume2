@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>John Doe - Cloud Engineer Resume</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="profile-section">
+                <img src="profile.jpg" alt="John Doe" class="profile-image" onerror="this.style.display='none'">
+                <div class="profile-info">
+                    <h1 class="name">John Doe</h1>
+                    <h2 class="title">Cloud Engineer & DevOps Specialist</h2>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>john.doe@example.com</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <span>+1 (555) 123-4567</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fab fa-linkedin"></i>
+                            <a href="https://linkedin.com/in/johndoe" target="_blank">linkedin.com/in/johndoe</a>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fab fa-github"></i>
+                            <a href="https://github.com/johndoe" target="_blank">github.com/johndoe</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="visitor-counter">
+                <i class="fas fa-eye"></i>
+                <span>Visitors: <span id="visitor-count">Loading...</span></span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="section">
+                <h3 class="section-title">
+                    <i class="fas fa-user"></i>
+                    Professional Summary
+                </h3>
+                <p>
+                    Experienced Cloud Engineer with 5+ years of expertise in Azure, AWS, and DevOps practices. 
+                    Specialized in Infrastructure as Code, CI/CD pipelines, and cloud-native architectures. 
+                    Proven track record of reducing deployment times by 80% and improving system reliability 
+                    through automated monitoring and incident response.
+                </p>
+            </section>
+
+            <section class="section">
+                <h3 class="section-title">
+                    <i class="fas fa-briefcase"></i>
+                    Professional Experience
+                </h3>
+                
+                <div class="experience-item">
+                    <div class="experience-header">
+                        <h4 class="job-title">Senior Cloud Engineer</h4>
+                        <span class="company">Tech Innovation Corp</span>
+                        <span class="duration">2021 - Present</span>
+                    </div>
+                    <ul class="achievements">
+                        <li>Designed and implemented multi-cloud infrastructure serving 1M+ users using Azure and AWS</li>
+                        <li>Built CI/CD pipelines with GitHub Actions, reducing deployment time from 2 hours to 15 minutes</li>
+                        <li>Implemented Infrastructure as Code using Terraform, managing 200+ cloud resources</li>
+                        <li>Established monitoring and alerting with Application Insights and Grafana</li>
+                    </ul>
+                </div>
+
+                <div class="experience-item">
+                    <div class="experience-header">
+                        <h4 class="job-title">Cloud DevOps Engineer</h4>
+                        <span class="company">Digital Solutions Ltd</span>
+                        <span class="duration">2019 - 2021</span>
+                    </div>
+                    <ul class="achievements">
+                        <li>Migrated legacy applications to Azure, reducing operational costs by 40%</li>
+                        <li>Automated deployment processes using Azure DevOps and PowerShell scripting</li>
+                        <li>Implemented container orchestration with Azure Kubernetes Service (AKS)</li>
+                        <li>Maintained 99.9% uptime for critical business applications</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="section">
+                <h3 class="section-title">
+                    <i class="fas fa-cogs"></i>
+                    Technical Skills
+                </h3>
+                
+                <div class="skills-grid">
+                    <div class="skill-category">
+                        <h4>Cloud Platforms</h4>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Microsoft Azure</span>
+                            <span class="skill-tag">AWS</span>
+                            <span class="skill-tag">Google Cloud</span>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-category">
+                        <h4>Infrastructure as Code</h4>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Terraform</span>
+                            <span class="skill-tag">ARM Templates</span>
+                            <span class="skill-tag">Bicep</span>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-category">
+                        <h4>CI/CD & DevOps</h4>
+                        <div class="skill-tags">
+                            <span class="skill-tag">GitHub Actions</span>
+                            <span class="skill-tag">Azure DevOps</span>
+                            <span class="skill-tag">Docker</span>
+                            <span class="skill-tag">Kubernetes</span>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-category">
+                        <h4>Programming Languages</h4>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Python</span>
+                            <span class="skill-tag">PowerShell</span>
+                            <span class="skill-tag">Bash</span>
+                            <span class="skill-tag">JavaScript</span>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-category">
+                        <h4>Monitoring & Security</h4>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Application Insights</span>
+                            <span class="skill-tag">Azure Monitor</span>
+                            <span class="skill-tag">Key Vault</span>
+                            <span class="skill-tag">Azure AD</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h3 class="section-title">
+                    <i class="fas fa-graduation-cap"></i>
+                    Certifications
+                </h3>
+                
+                <div class="certifications">
+                    <div class="cert-item">
+                        <i class="fab fa-microsoft"></i>
+                        <span>Microsoft Azure Solutions Architect Expert</span>
+                        <span class="cert-date">2023</span>
+                    </div>
+                    <div class="cert-item">
+                        <i class="fab fa-aws"></i>
+                        <span>AWS Solutions Architect Associate</span>
+                        <span class="cert-date">2022</span>
+                    </div>
+                    <div class="cert-item">
+                        <i class="fas fa-certificate"></i>
+                        <span>HashiCorp Certified: Terraform Associate</span>
+                        <span class="cert-date">2023</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h3 class="section-title">
+                    <i class="fas fa-project-diagram"></i>
+                    Featured Projects
+                </h3>
+                
+                <div class="projects">
+                    <div class="project-item">
+                        <h4>Cloud Resume Challenge</h4>
+                        <p>Built this serverless resume website using Azure Functions, Cosmos DB, and Terraform IaC. 
+                           Implemented CI/CD with GitHub Actions and visitor tracking with secure API integration.</p>
+                        <div class="project-tech">
+                            <span class="tech-tag">Azure</span>
+                            <span class="tech-tag">Terraform</span>
+                            <span class="tech-tag">Python</span>
+                            <span class="tech-tag">GitHub Actions</span>
+                        </div>
+                    </div>
+                    
+                    <div class="project-item">
+                        <h4>Multi-Cloud Disaster Recovery</h4>
+                        <p>Designed and implemented automated disaster recovery solution spanning Azure and AWS, 
+                           reducing RTO from 4 hours to 30 minutes.</p>
+                        <div class="project-tech">
+                            <span class="tech-tag">Azure</span>
+                            <span class="tech-tag">AWS</span>
+                            <span class="tech-tag">Terraform</span>
+                            <span class="tech-tag">PowerShell</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 John Doe. Built with Azure Functions, Cosmos DB, and lots of ☕</p>
+            <p class="tech-note">
+                This resume demonstrates cloud engineering skills through serverless architecture, 
+                Infrastructure as Code, and automated CI/CD deployment.
+            </p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "azure-resume-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Azure Resume Challenge",
+  "main": "src/index.html",
+  "scripts": {
+    "build": "npm run clean && npm run copy",
+    "clean": "rimraf dist",
+    "copy": "mkdir -p dist && cp src/* dist/",
+    "dev": "http-server src -p 8080 -o",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "rimraf": "^5.0.5"
+  },
+  "keywords": [
+    "azure",
+    "resume",
+    "cloud",
+    "serverless"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
