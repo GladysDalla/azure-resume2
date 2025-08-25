@@ -18,7 +18,7 @@ provider "azurerm" {
 
 # Create a resource group
 resource "azurerm_resource_group" "main" {
-  name     = "AzureResumeRG"
+  name     = "AzureResumeRG-terraform"
   location = "East US"
 }
 
