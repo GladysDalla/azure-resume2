@@ -19,7 +19,7 @@ provider "azurerm" {
 # Create a resource group
 resource "azurerm_resource_group" "main" {
   name     = "AzureResumeRG-terraform"
-  location = "East US"
+  location = "Central US"
 }
 
 # Create a storage account for static website hosting
