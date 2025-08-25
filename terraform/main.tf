@@ -1,261 +1,153 @@
-# Configure the Azure Provider
+# Terraform configuration for a secure, serverless Azure Resume solution.
+# This file defines all necessary Azure resources and configures them
+# with best practices like Managed Identities and Key Vault integration.
+
+# --- Terraform and Provider Configuration ---
+
 terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~>3.0"
-    }
-  }
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~>3.0"
+    }
+  }
+
+  # This block configures Terraform to store its state file remotely in the
+  # Azure Storage Account you created earlier. This is essential for CI/CD.
+  backend "azurerm" {
+    resource_group_name  = "tfstate-rg"
+    storage_account_name = "tfstateresumeglds05"
+    container_name       = "tfstate"
+    key                  = "azure-resume.tfstate"
+  }
 }
 
-# Configure the Microsoft Azure Provider
+# Configure the Azure Provider
 provider "azurerm" {
-  features {}
-  
-  # Disable automatic resource provider registration if you don't have permissions
-  skip_provider_registration = true
+  features {}
+  
+  # This line tells Terraform to skip the automatic registration of resource providers,
+  # which resolves permission errors in the pipeline.
+  skip_provider_registration = true
 }
 
-# Create a resource group
-resource "azurerm_resource_group" "main" {
-  name     = "AzureResumeRG-Terraform"
-  location = "East US 2"
+
+# --- Resource Definitions ---
+
+# A random string to ensure globally unique names for resources
+resource "random_string" "unique" {
+  length  = 6
+  special = false
+  upper   = false
 }
 
-# Create a storage account for static website hosting
-resource "azurerm_storage_account" "resume_storage" {
-  name                     = "azureresume${random_string.storage_suffix.result}"
-  resource_group_name      = azurerm_resource_group.main.name
-  location                 = azurerm_resource_group.main.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-
-  static_website {
-    index_document     = "index.html"
-    error_404_document = "404.html"
-  }
-
-  tags = {
-    environment = "production"
-    project     = "azure-resume"
-  }
+# 1. Main Resource Group for the application
+resource "azurerm_resource_group" "rg" {
+  name     = "AzureResumeRG-Terraform"
+  location = "eastus2"
 }
 
-# Random string for unique storage account name
-resource "random_string" "storage_suffix" {
-  length  = 8
-  special = false
-  upper   = false
+# 2. Monitoring Resources (Application Insights)
+resource "azurerm_log_analytics_workspace" "logs" {
+  name                = "logs-resume-${random_string.unique.result}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
 }
 
-# Create Application Insights
-resource "azurerm_application_insights" "resume_insights" {
-  name                = "azure-resume-insights"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  application_type    = "web"
-
-  tags = {
-    environment = "production"
-    project     = "azure-resume"
-  }
+resource "azurerm_application_insights" "insights" {
+  name                = "insights-resume-${random_string.unique.result}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  workspace_id        = azurerm_log_analytics_workspace.logs.id
+  application_type    = "web"
 }
 
-# Create Log Analytics Workspace
-resource "azurerm_log_analytics_workspace" "resume_workspace" {
-  name                = "azure-resume-workspace"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
+# 3. Storage Account for Frontend Hosting
+resource "azurerm_storage_account" "sa" {
+  name                     = "resumesa${random_string.unique.result}"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
 
-  tags = {
-    environment = "production"
-    project     = "azure-resume"
-  }
+  # Enable the static website hosting feature
+  static_website {
+    index_document     = "index.html"
+    error_404_document = "index.html"
+  }
 }
 
-# Get current Azure configuration
+# 4. Key Vault for Secure Secret Storage
+resource "azurerm_key_vault" "kv" {
+  name                        = "kv-resume-${random_string.unique.result}"
+  location                    = azurerm_resource_group.rg.location
+  resource_group_name         = azurerm_resource_group.rg.name
+  tenant_id                   = data.azurerm_client_config.current.tenant_id
+  sku_name                    = "standard"
+  enable_rbac_authorization = true
+}
+
+# Data source to get information about the current Azure AD user/SP
 data "azurerm_client_config" "current" {}
 
-# Create Key Vault (WITHOUT Function App access policy initially)
-resource "azurerm_key_vault" "resume_keyvault" {
-  name                        = "azure-resume-kv-${random_string.storage_suffix.result}"
-  resource_group_name         = azurerm_resource_group.main.name
-  location                    = azurerm_resource_group.main.location
-  enabled_for_disk_encryption = true
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  soft_delete_retention_days  = 7
-  purge_protection_enabled    = false
-  sku_name                    = "standard"
-
-  # Only include the current user/service principal access policy initially
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
-
-    key_permissions = [
-      "Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore"
-    ]
-
-    secret_permissions = [
-      "Get", "List", "Set", "Delete", "Recover", "Backup", "Restore"
-    ]
-  }
-
-  tags = {
-    environment = "production"
-    project     = "azure-resume"
-  }
+# 5. Backend Compute (Function App)
+resource "azurerm_service_plan" "plan" {
+  name                = "plan-resume-${random_string.unique.result}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  os_type             = "Linux"
+  sku_name            = "Y1" # Consumption plan
 }
 
-# Store storage connection string in Key Vault
-resource "azurerm_key_vault_secret" "storage_connection" {
-  name         = "storage-connection-string"
-  value        = azurerm_storage_account.resume_storage.primary_connection_string
-  key_vault_id = azurerm_key_vault.resume_keyvault.id
+resource "azurerm_linux_function_app" "func" {
+  name                = "func-resume-${random_string.unique.result}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  storage_account_name = azurerm_storage_account.sa.name
+  service_plan_id     = azurerm_service_plan.plan.id
 
-  depends_on = [
-    azurerm_key_vault.resume_keyvault,
-    time_sleep.wait_for_storage
-  ]
+  # Enable System-Assigned Managed Identity
+  identity {
+    type = "SystemAssigned"
+  }
+
+  site_config {
+    application_stack {
+      python_version = "3.9"
+    }
+  }
+
+  app_settings = {
+    "FUNCTIONS_EXTENSION_VERSION"          = "~4"
+    "FUNCTIONS_WORKER_RUNTIME"             = "python"
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.insights.connection_string
+    # Reference to Key Vault for the Cosmos DB connection string
+    "CosmosDbConnectionString"             = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.kv.name};SecretName=CosmosDbConnectionString)"
+  }
 }
 
-# Add a delay to ensure storage account is fully ready
-resource "time_sleep" "wait_for_storage" {
-  depends_on = [azurerm_storage_account.resume_storage]
-
-  create_duration = "30s"
+# 6. Security (RBAC for Key Vault)
+# Grant the Function App's Managed Identity permission to read secrets from Key Vault
+resource "azurerm_role_assignment" "func_kv_reader" {
+  scope                = azurerm_key_vault.kv.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_linux_function_app.func.identity[0].principal_id
 }
 
-# Create App Service Plan
-resource "azurerm_service_plan" "resume_plan" {
-  name                = "azure-resume-plan"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  os_type             = "Linux"
-  sku_name            = "Y1"
 
-  tags = {
-    environment = "production"
-    project     = "azure-resume"
-  }
+# === OUTPUTS ===
+# These values are returned after deployment and can be used in the CI/CD pipeline.
+
+output "function_app_name" {
+  value = azurerm_linux_function_app.func.name
 }
 
-# Create Function App
-resource "azurerm_linux_function_app" "resume_function" {
-  name                = "azure-resume-func-${random_string.storage_suffix.result}"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-
-  storage_account_name       = azurerm_storage_account.resume_storage.name
-  storage_account_access_key = azurerm_storage_account.resume_storage.primary_access_key
-  service_plan_id            = azurerm_service_plan.resume_plan.id
-
-  site_config {
-    application_stack {
-      python_version = "3.9"
-    }
-
-    cors {
-      allowed_origins = ["*"]
-    }
-  }
-
-  app_settings = {
-    "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.resume_insights.instrumentation_key
-    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.resume_insights.connection_string
-    "FUNCTIONS_WORKER_RUNTIME"              = "python"
-    "AzureWebJobsFeatureFlags"             = "EnableWorkerIndexing"
-    "STORAGE_CONNECTION_STRING"             = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.storage_connection.id})"
-  }
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  tags = {
-    environment = "production"
-    project     = "azure-resume"
-  }
-
-  depends_on = [
-    azurerm_key_vault_secret.storage_connection,
-    azurerm_storage_account.resume_storage
-  ]
+output "storage_account_name" {
+  value = azurerm_storage_account.sa.name
 }
 
-# SEPARATE Access Policy for Function App Managed Identity
-resource "azurerm_key_vault_access_policy" "function_app_policy" {
-  key_vault_id = azurerm_key_vault.resume_keyvault.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_linux_function_app.resume_function.identity[0].principal_id
-
-  secret_permissions = [
-    "Get", "List"
-  ]
-
-  depends_on = [azurerm_linux_function_app.resume_function]
-}
-
-# Create Cosmos DB Account for visitor counter
-resource "azurerm_cosmosdb_account" "resume_cosmos" {
-  name                = "azure-resume-cosmos-${random_string.storage_suffix.result}"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  offer_type          = "Standard"
-  kind                = "GlobalDocumentDB"
-
-  enable_automatic_failover = false
-
-  consistency_policy {
-    consistency_level       = "BoundedStaleness"
-    max_interval_in_seconds = 300
-    max_staleness_prefix    = 100000
-  }
-
-  geo_location {
-    location          = azurerm_resource_group.main.location
-    failover_priority = 0
-  }
-
-  tags = {
-    environment = "production"
-    project     = "azure-resume"
-  }
-}
-
-# Create Cosmos DB SQL Database
-resource "azurerm_cosmosdb_sql_database" "resume_db" {
-  name                = "resumedb"
-  resource_group_name = azurerm_resource_group.main.name
-  account_name        = azurerm_cosmosdb_account.resume_cosmos.name
-}
-
-# Create Cosmos DB SQL Container
-resource "azurerm_cosmosdb_sql_container" "visitor_counter" {
-  name                  = "visitors"
-  resource_group_name   = azurerm_resource_group.main.name
-  account_name          = azurerm_cosmosdb_account.resume_cosmos.name
-  database_name         = azurerm_cosmosdb_sql_database.resume_db.name
-  partition_key_path    = "/id"
-  partition_key_version = 1
-  throughput            = 400
-
-  indexing_policy {
-    indexing_mode = "consistent"
-
-    included_path {
-      path = "/*"
-    }
-  }
-}
-
-# Store Cosmos DB connection string in Key Vault
-resource "azurerm_key_vault_secret" "cosmos_connection" {
-  name         = "cosmos-connection-string"
-  value        = azurerm_cosmosdb_account.resume_cosmos.primary_sql_connection_string
-  key_vault_id = azurerm_key_vault.resume_keyvault.id
-
-  depends_on = [azurerm_key_vault.resume_keyvault]
+output "website_url" {
+  value = azurerm_storage_account.sa.primary_web_endpoint
 }
