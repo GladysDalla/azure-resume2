@@ -14,12 +14,15 @@ provider "azurerm" {
   
   # Disable automatic resource provider registration if you don't have permissions
   skip_provider_registration = true
+  
+  # Skip resource group existence validation
+  resource_provider_registrations = "none"
 }
 
 # Create a resource group
 resource "azurerm_resource_group" "main" {
-  name     = "AzureResumeRG-terraform"
-  location = "Central US"
+  name     = "AzureResumeRG-tf-${random_string.storage_suffix.result}"
+  location = "East US"
 }
 
 # Create a storage account for static website hosting
@@ -115,7 +118,17 @@ resource "azurerm_key_vault_secret" "storage_connection" {
   value        = azurerm_storage_account.resume_storage.primary_connection_string
   key_vault_id = azurerm_key_vault.resume_keyvault.id
 
-  depends_on = [azurerm_key_vault.resume_keyvault]
+  depends_on = [
+    azurerm_key_vault.resume_keyvault,
+    time_sleep.wait_for_storage
+  ]
+}
+
+# Add a delay to ensure storage account is fully ready
+resource "time_sleep" "wait_for_storage" {
+  depends_on = [azurerm_storage_account.resume_storage]
+
+  create_duration = "30s"
 }
 
 # Create App Service Plan
@@ -169,7 +182,10 @@ resource "azurerm_linux_function_app" "resume_function" {
     project     = "azure-resume"
   }
 
-  depends_on = [azurerm_key_vault_secret.storage_connection]
+  depends_on = [
+    azurerm_key_vault_secret.storage_connection,
+    azurerm_storage_account.resume_storage
+  ]
 }
 
 # SEPARATE Access Policy for Function App Managed Identity
