@@ -72,7 +72,10 @@ resource "azurerm_log_analytics_workspace" "resume_workspace" {
   }
 }
 
-# Create Key Vault
+# Get current Azure configuration
+data "azurerm_client_config" "current" {}
+
+# Create Key Vault (WITHOUT Function App access policy initially)
 resource "azurerm_key_vault" "resume_keyvault" {
   name                        = "azure-resume-kv-${random_string.storage_suffix.result}"
   resource_group_name         = azurerm_resource_group.main.name
@@ -83,6 +86,7 @@ resource "azurerm_key_vault" "resume_keyvault" {
   purge_protection_enabled    = false
   sku_name                    = "standard"
 
+  # Only include the current user/service principal access policy initially
   access_policy {
     tenant_id = data.azurerm_client_config.current.tenant_id
     object_id = data.azurerm_client_config.current.object_id
@@ -96,24 +100,20 @@ resource "azurerm_key_vault" "resume_keyvault" {
     ]
   }
 
-  # Access policy for Function App Managed Identity
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = azurerm_linux_function_app.resume_function.identity[0].principal_id
-
-    secret_permissions = [
-      "Get", "List"
-    ]
-  }
-
   tags = {
     environment = "production"
     project     = "azure-resume"
   }
 }
 
-# Get current Azure configuration
-data "azurerm_client_config" "current" {}
+# Store storage connection string in Key Vault
+resource "azurerm_key_vault_secret" "storage_connection" {
+  name         = "storage-connection-string"
+  value        = azurerm_storage_account.resume_storage.primary_connection_string
+  key_vault_id = azurerm_key_vault.resume_keyvault.id
+
+  depends_on = [azurerm_key_vault.resume_keyvault]
+}
 
 # Create App Service Plan
 resource "azurerm_service_plan" "resume_plan" {
@@ -165,15 +165,21 @@ resource "azurerm_linux_function_app" "resume_function" {
     environment = "production"
     project     = "azure-resume"
   }
+
+  depends_on = [azurerm_key_vault_secret.storage_connection]
 }
 
-# Store storage connection string in Key Vault
-resource "azurerm_key_vault_secret" "storage_connection" {
-  name         = "storage-connection-string"
-  value        = azurerm_storage_account.resume_storage.primary_connection_string
+# SEPARATE Access Policy for Function App Managed Identity
+resource "azurerm_key_vault_access_policy" "function_app_policy" {
   key_vault_id = azurerm_key_vault.resume_keyvault.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_linux_function_app.resume_function.identity[0].principal_id
 
-  depends_on = [azurerm_key_vault.resume_keyvault]
+  secret_permissions = [
+    "Get", "List"
+  ]
+
+  depends_on = [azurerm_linux_function_app.resume_function]
 }
 
 # Create Cosmos DB Account for visitor counter
