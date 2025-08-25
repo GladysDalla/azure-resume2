@@ -19,7 +19,7 @@ provider "azurerm" {
 # Create a resource group
 resource "azurerm_resource_group" "main" {
   name     = "AzureResumeRG-tf-${random_string.storage_suffix.result}"
-  location = "East US"
+  location = "East US 2"
 }
 
 # Create a storage account for static website hosting
