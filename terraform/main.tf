@@ -14,9 +14,6 @@ provider "azurerm" {
   
   # Disable automatic resource provider registration if you don't have permissions
   skip_provider_registration = true
-  
-  # Skip resource group existence validation
-  resource_provider_registrations = "none"
 }
 
 # Create a resource group
