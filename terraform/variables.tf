@@ -3,13 +3,13 @@
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
-  default     = "AzureResumeRG"
+  default     = "AzureResumeRG-Terraform"
 }
 
 variable "location" {
   description = "Azure region for resources"
   type        = string
-  default     = "East US"
+  default     = "East US 2"
 }
 
 variable "project_name" {
