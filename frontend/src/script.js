@@ -1,66 +1,157 @@
-// Visitor Counter Functionality
+// Smooth scrolling for navigation links
+document.querySelectorAll('nav a').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const sectionId = this.getAttribute('href');
+        document.querySelector(sectionId).scrollIntoView({
+            behavior: 'smooth'
+        });
+    });
+});
+
+// Add animation on scroll for project cards
+const projectCards = document.querySelectorAll('.project-card');
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = 1;
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, { threshold: 0.2 });
+
+projectCards.forEach(card => {
+    card.style.opacity = 0;
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'opacity 0.5s, transform 0.5s';
+    observer.observe(card);
+});
+
+// Tabbed filtering for projects
+const tabButtons = document.querySelectorAll('.tab-button');
+const projectCardsAll = document.querySelectorAll('.project-card');
+
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        // Remove active class from all buttons
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        // Add active class to clicked button
+        button.classList.add('active');
+
+        const category = button.getAttribute('data-category');
+
+        // Show/hide project cards based on category
+        projectCardsAll.forEach(card => {
+            if (category === 'all' || card.classList.contains(category)) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+    });
+});
+
+// VISITOR COUNTER FUNCTIONALITY
 class VisitorCounter {
     constructor() {
-        this.apiUrl = this.getApiUrl();
-        this.counterElement = document.getElementById('visitor-count');
+        this.functionUrl = null;
+        this.countElement = document.getElementById('visitor-count');
         this.init();
     }
 
-    getApiUrl() {
-        // In production, this will be your Function App URL
-        // For local development, you might use localhost
-        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-        
-        if (isProduction) {
-            // Replace with your actual Function App URL
-            return 'https://azure-resume-func-default.azurewebsites.net/api/visitor';
-        } else {
-            // Local development URL
-            return 'http://localhost:7071/api/visitor';
-        }
-    }
-
     async init() {
-        try {
-            // First, get the current count
-            await this.getCurrentCount();
-            
-            // Then increment the count (new visitor)
-            await this.incrementCount();
-        } catch (error) {
-            console.error('Error initializing visitor counter:', error);
-            this.showError();
-        }
+        // Get the function URL - you'll need to replace this with your actual function app URL
+        this.functionUrl = 'https://YOUR_FUNCTION_APP_NAME.azurewebsites.net/api/visitor';
+        
+        // Initialize the counter
+        await this.updateVisitorCount();
     }
 
-    async getCurrentCount() {
+    async updateVisitorCount() {
+        if (!this.countElement) {
+            console.log('Visitor count element not found');
+            return;
+        }
+
         try {
-            const response = await fetch(this.apiUrl, {
+            // Set loading state
+            this.countElement.textContent = 'Loading...';
+            this.countElement.className = 'visitor-count loading';
+
+            // First, try to get current count
+            let response = await fetch(this.functionUrl, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                },
+                }
             });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            this.updateDisplay(data.count);
-        } catch (error) {
-            console.error('Error getting current count:', error);
-            throw error;
-        }
-    }
+            let data = await response.json();
+            console.log('Current visitor count:', data.count);
 
-    async incrementCount() {
-        try {
-            const response = await fetch(this.apiUrl, {
+            // Now increment the count by sending a POST request
+            response = await fetch(this.functionUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                },
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            data = await response.json();
+            console.log('Updated visitor count:', data.count);
+
+            // Update the display with animation
+            this.animateCounterUpdate(data.count);
+
+        } catch (error) {
+            console.error('Error updating visitor count:', error);
+            this.countElement.textContent = 'Unable to load';
+            this.countElement.className = 'visitor-count error';
+        }
+    }
+
+    animateCounterUpdate(finalCount) {
+        const startCount = 0;
+        const duration = 1500; // 1.5 seconds
+        const startTime = Date.now();
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Use easing function for smooth animation
+            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+            const currentCount = Math.floor(startCount + (finalCount - startCount) * easeOutQuart);
+            
+            this.countElement.textContent = currentCount.toLocaleString();
+            this.countElement.className = 'visitor-count';
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                this.countElement.textContent = finalCount.toLocaleString();
+            }
+        };
+
+        animate();
+    }
+
+    // Method to get current count without incrementing
+    async getCurrentCount() {
+        try {
+            const response = await fetch(this.functionUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
 
             if (!response.ok) {
@@ -68,171 +159,35 @@ class VisitorCounter {
             }
 
             const data = await response.json();
-            this.updateDisplay(data.count);
-            this.animateCounter();
+            return data.count;
         } catch (error) {
-            console.error('Error incrementing count:', error);
-            // Don't throw here - we already have the count from GET request
-        }
-    }
-
-    updateDisplay(count) {
-        if (this.counterElement) {
-            // Add commas to large numbers
-            const formattedCount = count.toLocaleString();
-            this.counterElement.textContent = formattedCount;
-        }
-    }
-
-    animateCounter() {
-        if (this.counterElement) {
-            // Add a subtle animation when the counter updates
-            this.counterElement.style.transform = 'scale(1.1)';
-            this.counterElement.style.transition = 'transform 0.3s ease';
-            
-            setTimeout(() => {
-                this.counterElement.style.transform = 'scale(1)';
-            }, 300);
-        }
-    }
-
-    showError() {
-        if (this.counterElement) {
-            this.counterElement.textContent = 'Error';
-            this.counterElement.style.color = '#ef4444';
+            console.error('Error getting current count:', error);
+            return 0;
         }
     }
 }
 
-// Smooth scrolling for internal links (if any)
-function initSmoothScrolling() {
-    const links = document.querySelectorAll('a[href^="#"]');
-    
-    links.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-}
-
-// Add loading animations
-function initAnimations() {
-    // Fade in sections as they come into view
-    const sections = document.querySelectorAll('.section');
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
-
-    sections.forEach(section => {
-        section.style.opacity = '0';
-        section.style.transform = 'translateY(20px)';
-        section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(section);
-    });
-}
-
-// Add skill tag hover effects
-function initSkillTags() {
-    const skillTags = document.querySelectorAll('.skill-tag');
-    
-    skillTags.forEach(tag => {
-        tag.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-2px) scale(1.05)';
-        });
-        
-        tag.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
-        });
-    });
-}
-
-// Print functionality
-function initPrintStyles() {
-    // Add print button if needed
-    const printButton = document.createElement('button');
-    printButton.innerHTML = '<i class="fas fa-print"></i> Print Resume';
-    printButton.className = 'print-button';
-    printButton.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: linear-gradient(135deg, #4f46e5, #7c3aed);
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        border-radius: 25px;
-        cursor: pointer;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-        transition: transform 0.3s ease;
-        z-index: 1000;
-    `;
-    
-    printButton.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-2px)';
-    });
-    
-    printButton.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
-    });
-    
-    printButton.addEventListener('click', function() {
-        window.print();
-    });
-    
-    document.body.appendChild(printButton);
-}
-
-// Dark mode toggle (optional enhancement)
-function initDarkMode() {
-    // You can add dark mode functionality here if desired
-    // This would toggle between light and dark themes
-}
-
-// Initialize everything when DOM is loaded
+// Initialize visitor counter when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize visitor counter
-    new VisitorCounter();
+    const visitorCounter = new VisitorCounter();
     
-    // Initialize other features
-    initSmoothScrolling();
-    initAnimations();
-    initSkillTags();
-    initPrintStyles();
-    
-    // Add a subtle loading indicator removal
+    // Optional: Add some delay to let the page fully load
     setTimeout(() => {
-        document.body.style.opacity = '1';
-        document.body.style.transition = 'opacity 0.5s ease';
-    }, 100);
+        console.log('Visitor counter initialized');
+    }, 1000);
 });
 
-// Handle any errors globally
-window.addEventListener('error', function(e) {
-    console.error('Global error:', e.error);
-});
-
-// Performance monitoring (optional)
-window.addEventListener('load', function() {
-    if ('performance' in window) {
-        const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-        console.log(`Page loaded in ${loadTime}ms`);
+// Optional: Health check for the API
+async function checkAPIHealth() {
+    try {
+        const response = await fetch('https://YOUR_FUNCTION_APP_NAME.azurewebsites.net/api/health');
+        const data = await response.json();
+        console.log('API Health Check:', data);
+    } catch (error) {
+        console.error('API Health Check failed:', error);
     }
-});
+}
+
+// Run health check (optional)
+// checkAPIHealth();
