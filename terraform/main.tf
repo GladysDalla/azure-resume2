@@ -137,7 +137,7 @@ resource "azurerm_service_plan" "resume_plan" {
   tags = var.tags
 }
 
-# Create Cosmos DB Account for visitor counter
+# Create Cosmos DB Account for visitor counter (FIXED - removed deprecated enable_automatic_failover)
 resource "azurerm_cosmosdb_account" "resume_cosmos" {
   name                = "${var.project_name}-cosmos-${random_string.storage_suffix.result}"
   resource_group_name = azurerm_resource_group.main.name
@@ -145,7 +145,7 @@ resource "azurerm_cosmosdb_account" "resume_cosmos" {
   offer_type          = "Standard"
   kind                = "GlobalDocumentDB"
 
-  enable_automatic_failover = false
+  # REMOVED: enable_automatic_failover = false (deprecated)
 
   consistency_policy {
     consistency_level       = var.cosmos_consistency_level
@@ -196,7 +196,7 @@ resource "azurerm_key_vault_secret" "cosmos_connection" {
   depends_on = [azurerm_key_vault.resume_keyvault]
 }
 
-# Create Function App with updated settings for visitor counter
+# Create Function App with updated settings for visitor counter (FIXED - removed unsupported arguments)
 resource "azurerm_linux_function_app" "resume_function" {
   name                = "${var.project_name}-func-${random_string.storage_suffix.result}"
   resource_group_name = azurerm_resource_group.main.name
@@ -216,9 +216,8 @@ resource "azurerm_linux_function_app" "resume_function" {
       support_credentials = false
     }
 
-    # Enable detailed error messages for debugging
-    detailed_error_messages_enabled = true
-    failed_request_tracing_enabled   = true
+    # REMOVED: detailed_error_messages_enabled and failed_request_tracing_enabled
+    # These are not supported arguments for azurerm_linux_function_app site_config
   }
 
   app_settings = {
