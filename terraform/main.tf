@@ -5,6 +5,14 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~>3.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~>3.1"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~>0.9"
+    }
   }
 }
 
@@ -129,59 +137,6 @@ resource "azurerm_service_plan" "resume_plan" {
   tags = var.tags
 }
 
-# Create Function App
-resource "azurerm_linux_function_app" "resume_function" {
-  name                = "${var.project_name}-func-${random_string.storage_suffix.result}"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-
-  storage_account_name       = azurerm_storage_account.resume_storage.name
-  storage_account_access_key = azurerm_storage_account.resume_storage.primary_access_key
-  service_plan_id            = azurerm_service_plan.resume_plan.id
-
-  site_config {
-    application_stack {
-      python_version = "3.9"
-    }
-
-    cors {
-      allowed_origins = ["*"]
-    }
-  }
-
-  app_settings = {
-    "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.resume_insights.instrumentation_key
-    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.resume_insights.connection_string
-    "FUNCTIONS_WORKER_RUNTIME"              = "python"
-    "AzureWebJobsFeatureFlags"             = "EnableWorkerIndexing"
-    "STORAGE_CONNECTION_STRING"             = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.storage_connection.id})"
-  }
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  tags = var.tags
-
-  depends_on = [
-    azurerm_key_vault_secret.storage_connection,
-    azurerm_storage_account.resume_storage
-  ]
-}
-
-# SEPARATE Access Policy for Function App Managed Identity
-resource "azurerm_key_vault_access_policy" "function_app_policy" {
-  key_vault_id = azurerm_key_vault.resume_keyvault.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_linux_function_app.resume_function.identity[0].principal_id
-
-  secret_permissions = [
-    "Get", "List"
-  ]
-
-  depends_on = [azurerm_linux_function_app.resume_function]
-}
-
 # Create Cosmos DB Account for visitor counter
 resource "azurerm_cosmosdb_account" "resume_cosmos" {
   name                = "${var.project_name}-cosmos-${random_string.storage_suffix.result}"
@@ -239,4 +194,76 @@ resource "azurerm_key_vault_secret" "cosmos_connection" {
   key_vault_id = azurerm_key_vault.resume_keyvault.id
 
   depends_on = [azurerm_key_vault.resume_keyvault]
+}
+
+# Create Function App with updated settings for visitor counter
+resource "azurerm_linux_function_app" "resume_function" {
+  name                = "${var.project_name}-func-${random_string.storage_suffix.result}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+
+  storage_account_name       = azurerm_storage_account.resume_storage.name
+  storage_account_access_key = azurerm_storage_account.resume_storage.primary_access_key
+  service_plan_id            = azurerm_service_plan.resume_plan.id
+
+  site_config {
+    application_stack {
+      python_version = "3.11"
+    }
+
+    cors {
+      allowed_origins = ["*"]
+      support_credentials = false
+    }
+
+    # Enable detailed error messages for debugging
+    detailed_error_messages_enabled = true
+    failed_request_tracing_enabled   = true
+  }
+
+  app_settings = {
+    "APPINSIGHTS_INSTRUMENTATIONKEY"        = azurerm_application_insights.resume_insights.instrumentation_key
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.resume_insights.connection_string
+    "FUNCTIONS_WORKER_RUNTIME"              = "python"
+    "AzureWebJobsFeatureFlags"             = "EnableWorkerIndexing"
+    "STORAGE_CONNECTION_STRING"             = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.storage_connection.id})"
+    
+    # Key Vault URI for the function to access secrets using Managed Identity
+    "KEY_VAULT_URI"                        = azurerm_key_vault.resume_keyvault.vault_uri
+    
+    # Additional settings for better performance and debugging
+    "FUNCTIONS_EXTENSION_VERSION"          = "~4"
+    "WEBSITE_RUN_FROM_PACKAGE"             = "1"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT"       = "true"
+    "ENABLE_ORYX_BUILD"                    = "true"
+    
+    # Python specific settings
+    "PYTHON_ISOLATE_WORKER_DEPENDENCIES"   = "1"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = var.tags
+
+  depends_on = [
+    azurerm_key_vault_secret.storage_connection,
+    azurerm_key_vault_secret.cosmos_connection,
+    azurerm_storage_account.resume_storage,
+    azurerm_cosmosdb_sql_container.visitor_counter
+  ]
+}
+
+# SEPARATE Access Policy for Function App Managed Identity
+resource "azurerm_key_vault_access_policy" "function_app_policy" {
+  key_vault_id = azurerm_key_vault.resume_keyvault.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_linux_function_app.resume_function.identity[0].principal_id
+
+  secret_permissions = [
+    "Get", "List"
+  ]
+
+  depends_on = [azurerm_linux_function_app.resume_function]
 }

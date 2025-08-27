@@ -61,7 +61,7 @@ class VisitorCounter {
 
     async init() {
         // Get the function URL - you'll need to replace this with your actual function app URL
-        this.functionUrl = 'https://YOUR_FUNCTION_APP_NAME.azurewebsites.net/api/visitor';
+        this.functionUrl = 'https://azure-resume-func-c1ti8177.azurewebsites.net/api/visitor';
         
         // Initialize the counter
         await this.updateVisitorCount();
