@@ -102,31 +102,7 @@ section h2 {
     text-align: center;
 }
 
-/* Projects Section */
-.projects-tabs {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.projects-tabs button {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    font-family: 'Roboto', sans-serif;
-    font-size: 1rem;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: background 0.3s;
-}
-
-.projects-tabs button:hover,
-.projects-tabs button.active {
-    background: #2c3e50;
-}
-
+/* Projects Section - Simplified */
 .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -139,16 +115,12 @@ section h2 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 1.5rem;
     text-align: center;
-    transition: transform 0.3s;
-    display: none;
-}
-
-.project-card.active {
-    display: block;
+    transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .project-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .project-card i {
@@ -168,6 +140,106 @@ section h2 {
 .project-card h3 {
     font-family: 'Roboto', sans-serif;
     margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.project-card p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.project-link {
+    display: inline-block;
+    background: #3498db;
+    color: white;
+    text-decoration: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background 0.3s;
+}
+
+.project-link:hover {
+    background: #2980b9;
+}
+
+/* Certifications Section */
+#certifications {
+    background: #f8f9fa;
+}
+
+.certifications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.certification-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    border-left: 4px solid #3498db;
+}
+
+.certification-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.cert-icon {
+    margin-bottom: 1.5rem;
+}
+
+.cert-icon i {
+    font-size: 3rem;
+    color: #3498db;
+}
+
+.certification-card h3 {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.cert-issuer {
+    color: #7f8c8d;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.cert-date {
+    color: #95a5a6;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.cert-description {
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.cert-verify {
+    display: inline-block;
+    background: #27ae60;
+    color: white;
+    text-decoration: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.3s;
+}
+
+.cert-verify:hover {
+    background: #219a52;
 }
 
 /* Work Experience Section */
@@ -319,14 +391,12 @@ footer i {
         height: 150px;
     }
 
-    .projects-tabs {
-        flex-direction: column;
-        align-items: center;
+    .certifications-grid {
+        grid-template-columns: 1fr;
     }
 
-    .projects-tabs button {
-        width: 100%;
-        max-width: 300px;
+    .certification-card {
+        padding: 1.5rem;
     }
 
     .stats-container {
@@ -342,5 +412,28 @@ footer i {
     
     .visitor-count {
         font-size: 2rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    nav ul {
+        gap: 0.5rem;
+    }
+    
+    nav a {
+        font-size: 0.9rem;
+    }
+    
+    .certifications-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .certification-card {
+        padding: 1rem;
+    }
+    
+    .cert-icon i {
+        font-size: 2.5rem;
     }
 }
